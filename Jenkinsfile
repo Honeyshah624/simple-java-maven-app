@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        DOCKERHUB_CREDENTIALS = 'dockerhub-credetials-id'
+        DOCKERHUB_CREDENTIALS = 'dockerhub-credentials-id'
         DOCKERHUB_USERNAME = 'honeyshah062'
 
         IMAGE_NAME = 'simple-java-maven-app'
