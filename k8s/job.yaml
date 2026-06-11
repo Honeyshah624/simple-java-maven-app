@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: simple-java-maven-app
+  namespace: default
+  labels:
+    app: simple-java-maven-app
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app: simple-java-maven-app
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: simple-java-maven-app
+          image: DOCKER_IMAGE_PLACEHOLDER
+          imagePullPolicy: Always
