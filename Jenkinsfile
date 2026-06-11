@@ -7,8 +7,6 @@ pipeline {
 
     environment {
         DOCKERHUB_CREDENTIALS = 'dockerhub-creds'
-
-        
         DOCKERHUB_USERNAME = 'honeyshah062'
 
         IMAGE_NAME = 'simple-java-maven-app'
@@ -27,22 +25,9 @@ pipeline {
 
     stages {
 
-        stage('Checkout Code') {
+        stage('Build Maven App') {
             steps {
-                git branch: 'master',
-                    url: 'https://github.com/Honeyshah624/simple-java-maven-app.git'
-            }
-        }
-
-        stage('Build with Maven') {
-            steps {
-                sh 'mvn -B clean package -DskipTests'
-            }
-        }
-
-        stage('Run Unit Tests') {
-            steps {
-                sh 'mvn test'
+                sh 'mvn -B clean package'
             }
             post {
                 always {
@@ -60,7 +45,7 @@ pipeline {
             }
         }
 
-        stage('Docker Login') {
+        stage('Push Docker Image') {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: "${DOCKERHUB_CREDENTIALS}",
@@ -69,24 +54,17 @@ pipeline {
                 )]) {
                     sh '''
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker push ${DOCKER_IMAGE}
+                        docker logout
                     '''
                 }
-            }
-        }
-
-        stage('Push Docker Image') {
-            steps {
-                sh '''
-                    echo "Pushing Docker image: ${DOCKER_IMAGE}"
-                    docker push ${DOCKER_IMAGE}
-                '''
             }
         }
 
         stage('Deploy to Minikube') {
             steps {
                 sh '''
-                    echo "Deploying Java Maven app to Minikube"
+                    echo "Deploying image ${DOCKER_IMAGE} to Minikube"
 
                     kubectl delete job ${JOB_NAME} -n ${KUBE_NAMESPACE} --ignore-not-found=true
 
@@ -98,7 +76,7 @@ pipeline {
             }
         }
 
-        stage('Verify Job Logs') {
+        stage('Verify App Logs') {
             steps {
                 sh '''
                     echo "Waiting for Kubernetes Job to complete..."
@@ -107,7 +85,6 @@ pipeline {
 
                     POD_NAME=$(kubectl get pods -n ${KUBE_NAMESPACE} -l app=${JOB_NAME} -o jsonpath='{.items[0].metadata.name}')
 
-                    echo "Pod Name: $POD_NAME"
                     echo "Application Logs:"
                     kubectl logs $POD_NAME -n ${KUBE_NAMESPACE}
                 '''
@@ -122,12 +99,6 @@ pipeline {
 
         failure {
             echo 'Pipeline failed. Please check Jenkins console output.'
-        }
-
-        always {
-            sh '''
-                docker logout || true
-            '''
         }
     }
 }
